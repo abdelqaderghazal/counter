@@ -39,71 +39,6 @@
             margin: 0 auto;
         }
 
-        /* ===== SETUP PANEL ===== */
-        .setup-panel {
-            background: var(--card-bg);
-            border-radius: 16px;
-            padding: 24px;
-            margin-bottom: 20px;
-            box-shadow: var(--shadow);
-            border: 2px solid var(--warning);
-        }
-
-        .setup-panel h3 {
-            color: var(--warning);
-            margin-bottom: 12px;
-            font-size: 1.1rem;
-        }
-
-        .setup-panel p {
-            color: var(--text-light);
-            font-size: 0.85rem;
-            margin-bottom: 12px;
-            line-height: 1.6;
-        }
-
-        .setup-panel input {
-            width: 100%;
-            padding: 10px 14px;
-            border: 2px solid #ddd;
-            border-radius: 10px;
-            font-family: 'Cairo', sans-serif;
-            font-size: 0.85rem;
-            margin-bottom: 10px;
-            direction: ltr;
-            text-align: left;
-        }
-
-        .setup-panel input:focus {
-            outline: none;
-            border-color: var(--primary);
-        }
-
-        .setup-panel .btn-save {
-            background: var(--primary);
-            color: white;
-            border: none;
-            padding: 10px 24px;
-            border-radius: 10px;
-            font-family: 'Cairo', sans-serif;
-            font-weight: 700;
-            cursor: pointer;
-            font-size: 0.9rem;
-        }
-
-        .setup-panel .btn-save:hover {
-            background: var(--primary-light);
-        }
-
-        .setup-panel .status {
-            margin-top: 10px;
-            font-size: 0.85rem;
-            font-weight: 700;
-        }
-
-        .setup-panel .status.ok { color: var(--accent); }
-        .setup-panel .status.err { color: var(--secondary); }
-
         /* ===== HEADER ===== */
         header {
             text-align: center;
@@ -412,29 +347,12 @@
             .summary-grid { grid-template-columns: repeat(2, 1fr); }
             .summary-item { font-size: 0.75rem; padding: 5px 8px; }
             .btn-action { padding: 10px 18px; font-size: 0.85rem; }
-            .setup-panel { padding: 16px; }
-            .setup-panel h3 { font-size: 1rem; }
         }
     </style>
 <base target="_blank">
 </head>
 <body>
     <div class="container">
-        <!-- ===== SETUP PANEL ===== -->
-        <div class="setup-panel" id="setupPanel">
-            <h3>🔗 ربط Google Sheets (اختياري)</h3>
-            <p>
-                1. أنشئ <b>Google Sheet</b> جديد<br>
-                2. اذهب إلى <b>Extensions → Apps Script</b><br>
-                3. الصق الكود أدناه ثم احفظ<br>
-                4. اضغط <b>Deploy → New deployment</b> واختر <b>Web app</b><br>
-                5. امنح الأذونات وانسخ <b>Web App URL</b> هنا
-            </p>
-            <input type="text" id="sheetUrl" placeholder="https://script.google.com/macros/s/.../exec" value="">
-            <button class="btn-save" onclick="saveSheetUrl()">💾 حفظ الرابط</button>
-            <div class="status" id="setupStatus"></div>
-        </div>
-
         <!-- ===== HEADER ===== -->
         <header>
             <h1>👥 عداد الأشخاص</h1>
@@ -527,7 +445,6 @@
         categories.forEach(c => counts[c.id] = 0);
 
         let charts = {};
-        let sheetUrl = localStorage.getItem('sheetUrl') || '';
         const STORAGE_KEY = 'people_counter_data';
 
         // ===== LOCAL STORAGE =====
@@ -551,66 +468,9 @@
             localStorage.setItem(STORAGE_KEY, JSON.stringify(counts));
         }
 
-        // ===== SETUP =====
-        function initSetup() {
-            const hasLocal = loadFromLocal();
-            if (sheetUrl) {
-                document.getElementById('sheetUrl').value = sheetUrl;
-                document.getElementById('setupPanel').style.display = 'none';
-                if (!hasLocal) {
-                    loadFromSheet();
-                }
-            }
-        }
-
-        function saveSheetUrl() {
-            const url = document.getElementById('sheetUrl').value.trim();
-            const status = document.getElementById('setupStatus');
-            if (!url || !url.includes('script.google.com')) {
-                status.className = 'status err';
-                status.textContent = '⚠️ الرابط غير صحيح';
-                return;
-            }
-            sheetUrl = url;
-            localStorage.setItem('sheetUrl', sheetUrl);
-            status.className = 'status ok';
-            status.textContent = '✅ تم الحفظ! جاري التحميل...';
-            setTimeout(() => {
-                document.getElementById('setupPanel').style.display = 'none';
-                loadFromSheet();
-            }, 800);
-        }
-
-        // ===== GOOGLE SHEETS API =====
-        async function loadFromSheet() {
-            if (!sheetUrl) return;
-            try {
-                const res = await fetch(sheetUrl + '?t=' + Date.now());
-                const data = await res.json();
-                categories.forEach(c => {
-                    if (data[c.id] !== undefined) counts[c.id] = parseInt(data[c.id]) || 0;
-                });
-                saveToLocal();
-                renderCounters();
-                updateTotal();
-                updateSummary();
-                updateCharts();
-            } catch (e) {
-                console.error('Load error:', e);
-            }
-        }
-
-        async function saveToSheet() {
-            if (!sheetUrl) return;
-            try {
-                await fetch(sheetUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(counts)
-                });
-            } catch (e) {
-                console.error('Save error:', e);
-            }
+        // ===== INIT =====
+        function init() {
+            loadFromLocal();
         }
 
         // ===== DATE =====
@@ -641,7 +501,6 @@
             updateSummary();
             updateCharts();
             saveToLocal();
-            saveToSheet();
         }
 
         // ===== UPDATE TOTAL =====
@@ -774,7 +633,6 @@
                 updateTotal();
                 updateSummary();
                 updateCharts();
-                saveToSheet();
             }
         }
 
@@ -836,7 +694,7 @@
 
         // ===== INIT =====
         setTodayDate();
-        initSetup();
+        init();
         renderCounters();
         updateTotal();
         updateSummary();
