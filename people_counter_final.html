@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>عداد الأشخاص</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        :root {
+            --primary: #1a5276;
+            --primary-light: #2980b9;
+            --secondary: #e74c3c;
+            --accent: #27ae60;
+            --warning: #f39c12;
+            --bg: #f0f4f8;
+            --card-bg: #ffffff;
+            --text: #2c3e50;
+            --text-light: #7f8c8d;
+            --shadow: 0 4px 16px rgba(0,0,0,0.08);
+            --shadow-hover: 0 8px 24px rgba(0,0,0,0.12);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Cairo', sans-serif;
+            background: var(--bg);
+            min-height: 100vh;
+            padding: 16px;
+            color: var(--text);
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        /* ===== SETUP PANEL ===== */
+        .setup-panel {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow);
+            border: 2px solid var(--warning);
+        }
+
+        .setup-panel h3 {
+            color: var(--warning);
+            margin-bottom: 12px;
+            font-size: 1.1rem;
+        }
+
+        .setup-panel p {
+            color: var(--text-light);
+            font-size: 0.85rem;
+            margin-bottom: 12px;
+            line-height: 1.6;
+        }
+
+        .setup-panel input {
+            width: 100%;
+            padding: 10px 14px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-family: 'Cairo', sans-serif;
+            font-size: 0.85rem;
+            margin-bottom: 10px;
+            direction: ltr;
+            text-align: left;
+        }
+
+        .setup-panel input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .setup-panel .btn-save {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 10px;
+            font-family: 'Cairo', sans-serif;
+            font-weight: 700;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .setup-panel .btn-save:hover {
+            background: var(--primary-light);
+        }
+
+        .setup-panel .status {
+            margin-top: 10px;
+            font-size: 0.85rem;
+            font-weight: 700;
+        }
+
+        .setup-panel .status.ok { color: var(--accent); }
+        .setup-panel .status.err { color: var(--secondary); }
+
+        /* ===== HEADER ===== */
+        header {
+            text-align: center;
+            margin-bottom: 18px;
+        }
+
+        header h1 {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--primary);
+            margin-bottom: 4px;
+        }
+
+        .date-box {
+            display: inline-block;
+            background: var(--primary);
+            color: white;
+            padding: 6px 20px;
+            border-radius: 50px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-top: 6px;
+            box-shadow: var(--shadow);
+        }
+
+        /* ===== TOTAL BAR ===== */
+        .total-bar {
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            color: white;
+            padding: 16px;
+            border-radius: 14px;
+            text-align: center;
+            margin-bottom: 18px;
+            box-shadow: var(--shadow);
+        }
+
+        .total-bar .label {
+            font-size: 1rem;
+            opacity: 0.9;
+        }
+
+        .total-bar .number {
+            font-size: 2.6rem;
+            font-weight: 800;
+            margin-top: 2px;
+        }
+
+        /* ===== COUNTERS GRID ===== */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .counter-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 14px 6px 10px;
+            text-align: center;
+            box-shadow: var(--shadow);
+            transition: transform 0.15s, box-shadow 0.15s;
+            border: 2px solid transparent;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+            position: relative;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+
+        .counter-card:active {
+            transform: scale(0.95);
+        }
+
+        .counter-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-hover);
+        }
+
+        .counter-card.male { border-color: #3498db; }
+        .counter-card.female { border-color: #e91e63; }
+        .counter-card.disability { border-color: var(--warning); }
+
+        .counter-card .icon {
+            font-size: 1.8rem;
+            margin-bottom: 2px;
+        }
+
+        .counter-card .title {
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 4px;
+            line-height: 1.3;
+        }
+
+        .counter-card .count {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--primary);
+            margin: 4px 0;
+            min-height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* ===== CHARTS SECTION ===== */
+        .charts-section {
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: var(--primary);
+            margin-bottom: 14px;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 14px;
+        }
+
+        .chart-card {
+            background: var(--card-bg);
+            border-radius: 14px;
+            padding: 16px;
+            box-shadow: var(--shadow);
+        }
+
+        .chart-card h4 {
+            text-align: center;
+            margin-bottom: 10px;
+            color: var(--text);
+            font-size: 0.9rem;
+        }
+
+        .chart-wrapper {
+            position: relative;
+            height: 220px;
+        }
+
+        /* ===== SUMMARY ===== */
+        .summary {
+            background: var(--card-bg);
+            border-radius: 14px;
+            padding: 16px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow);
+        }
+
+        .summary h3 {
+            text-align: center;
+            margin-bottom: 12px;
+            color: var(--primary);
+            font-size: 1.1rem;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+        }
+
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 10px;
+            background: var(--bg);
+            border-radius: 8px;
+            font-size: 0.8rem;
+        }
+
+        .summary-item .val {
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        /* ===== ACTIONS ===== */
+        .actions {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .btn-action {
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            border: none;
+            cursor: pointer;
+            font-family: 'Cairo', sans-serif;
+            transition: all 0.15s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: var(--shadow);
+        }
+
+        .btn-action:active {
+            transform: scale(0.96);
+        }
+
+        .btn-reset {
+            background: var(--secondary);
+            color: white;
+        }
+
+        .btn-reset:hover {
+            background: #c0392b;
+        }
+
+        .btn-export {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-export:hover {
+            background: var(--primary-light);
+        }
+
+        .btn-export-img {
+            background: var(--accent);
+            color: white;
+        }
+
+        .btn-export-img:hover {
+            background: #219a52;
+        }
+
+        /* ===== EXPORT OVERLAY ===== */
+        .export-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .export-overlay.active {
+            display: flex;
+        }
+
+        .export-modal {
+            background: white;
+            padding: 24px;
+            border-radius: 16px;
+            text-align: center;
+            max-width: 340px;
+            width: 90%;
+        }
+
+        .export-modal h3 {
+            color: var(--primary);
+            margin-bottom: 8px;
+            font-size: 1.1rem;
+        }
+
+        .export-modal p {
+            color: var(--text-light);
+            margin-bottom: 16px;
+            font-size: 0.9rem;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #e0e0e0;
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 12px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 900px) {
+            .grid { grid-template-columns: repeat(4, 1fr); }
+            .summary-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        @media (max-width: 600px) {
+            header h1 { font-size: 1.5rem; }
+            .grid { grid-template-columns: repeat(4, 1fr); gap: 8px; }
+            .total-bar .number { font-size: 2rem; }
+            .charts-grid { grid-template-columns: 1fr; }
+            .chart-wrapper { height: 200px; }
+            .counter-card { padding: 10px 4px; }
+            .counter-card .title { font-size: 0.68rem; }
+            .counter-card .count { font-size: 1.6rem; min-height: 30px; }
+            .counter-card .icon { font-size: 1.5rem; }
+            .summary-grid { grid-template-columns: repeat(2, 1fr); }
+            .summary-item { font-size: 0.75rem; padding: 5px 8px; }
+            .btn-action { padding: 10px 18px; font-size: 0.85rem; }
+            .setup-panel { padding: 16px; }
+            .setup-panel h3 { font-size: 1rem; }
+        }
+    </style>
+<base target="_blank">
+</head>
+<body>
+    <div class="container">
+        <!-- ===== SETUP PANEL ===== -->
+        <div class="setup-panel" id="setupPanel">
+            <h3>🔗 ربط Google Sheets (اختياري)</h3>
+            <p>
+                1. أنشئ <b>Google Sheet</b> جديد<br>
+                2. اذهب إلى <b>Extensions → Apps Script</b><br>
+                3. الصق الكود أدناه ثم احفظ<br>
+                4. اضغط <b>Deploy → New deployment</b> واختر <b>Web app</b><br>
+                5. امنح الأذونات وانسخ <b>Web App URL</b> هنا
+            </p>
+            <input type="text" id="sheetUrl" placeholder="https://script.google.com/macros/s/.../exec" value="">
+            <button class="btn-save" onclick="saveSheetUrl()">💾 حفظ الرابط</button>
+            <div class="status" id="setupStatus"></div>
+        </div>
+
+        <!-- ===== HEADER ===== -->
+        <header>
+            <h1>👥 عداد الأشخاص</h1>
+            <div class="date-box" id="todayDate">📅 جاري التحميل...</div>
+        </header>
+
+        <!-- ===== TOTAL BAR ===== -->
+        <div class="total-bar">
+            <div class="label">إجمالي العدد</div>
+            <div class="number" id="totalCount">0</div>
+        </div>
+
+        <!-- ===== COUNTERS ===== -->
+        <div class="grid" id="countersGrid"></div>
+
+        <!-- ===== CHARTS ===== -->
+        <div class="charts-section">
+            <div class="section-title">📊 الرسوم البيانية</div>
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <h4>📊 توزيع الفئات</h4>
+                    <div class="chart-wrapper">
+                        <canvas id="barChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <h4>⚥ الذكور vs الإناث</h4>
+                    <div class="chart-wrapper">
+                        <canvas id="genderChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <h4>👶👨👴 الفئات العمرية</h4>
+                    <div class="chart-wrapper">
+                        <canvas id="ageChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <h4>♿ ذوي الإعاقة</h4>
+                    <div class="chart-wrapper">
+                        <canvas id="disabilityChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== SUMMARY ===== -->
+        <div class="summary">
+            <h3>📋 ملخص الفئات</h3>
+            <div class="summary-grid" id="summaryGrid"></div>
+        </div>
+
+        <!-- ===== ACTIONS ===== -->
+        <div class="actions">
+            <button class="btn-action btn-reset" onclick="resetAll()">
+                🔄 إعادة الضبط
+            </button>
+            <button class="btn-action btn-export" onclick="exportText()">
+                📋 نسخ نصي
+            </button>
+            <button class="btn-action btn-export-img" onclick="exportImage()">
+                🖼️ تصدير صورة
+            </button>
+        </div>
+    </div>
+
+    <!-- ===== EXPORT OVERLAY ===== -->
+    <div class="export-overlay" id="exportOverlay">
+        <div class="export-modal">
+            <div class="spinner"></div>
+            <h3>جاري إنشاء التقرير...</h3>
+            <p>يرجى الانتظار قليلاً</p>
+        </div>
+    </div>
+
+    <script>
+        // ===== DATA =====
+        const categories = [
+            { id: 'm_under15', title: 'ذكر دون 15', icon: '👦', type: 'male', group: 'age', gender: 'male' },
+            { id: 'f_under15', title: 'أنثى دون 15', icon: '👧', type: 'female', group: 'age', gender: 'female' },
+            { id: 'm_15_45',   title: 'ذكر 15-45', icon: '👨', type: 'male', group: 'adult', gender: 'male' },
+            { id: 'f_15_45',   title: 'أنثى 15-45', icon: '👩', type: 'female', group: 'adult', gender: 'female' },
+            { id: 'm_over45',  title: 'ذكر فوق 45', icon: '👴', type: 'male', group: 'senior', gender: 'male' },
+            { id: 'f_over45',  title: 'أنثى فوق 45', icon: '👵', type: 'female', group: 'senior', gender: 'female' },
+            { id: 'm_dis',     title: 'ذكر ذوي إعاقة', icon: '♂️♿', type: 'disability', group: 'disability', gender: 'male' },
+            { id: 'f_dis',     title: 'أنثى ذوي إعاقة', icon: '♀️♿', type: 'disability', group: 'disability', gender: 'female' }
+        ];
+
+        let counts = {};
+        categories.forEach(c => counts[c.id] = 0);
+
+        let charts = {};
+        let sheetUrl = localStorage.getItem('sheetUrl') || '';
+        const STORAGE_KEY = 'people_counter_data';
+
+        // ===== LOCAL STORAGE =====
+        function loadFromLocal() {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) {
+                try {
+                    const data = JSON.parse(saved);
+                    categories.forEach(c => {
+                        if (data[c.id] !== undefined) counts[c.id] = parseInt(data[c.id]) || 0;
+                    });
+                    return true;
+                } catch (e) {
+                    console.error('Local load error:', e);
+                }
+            }
+            return false;
+        }
+
+        function saveToLocal() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(counts));
+        }
+
+        // ===== SETUP =====
+        function initSetup() {
+            const hasLocal = loadFromLocal();
+            if (sheetUrl) {
+                document.getElementById('sheetUrl').value = sheetUrl;
+                document.getElementById('setupPanel').style.display = 'none';
+                if (!hasLocal) {
+                    loadFromSheet();
+                }
+            }
+        }
+
+        function saveSheetUrl() {
+            const url = document.getElementById('sheetUrl').value.trim();
+            const status = document.getElementById('setupStatus');
+            if (!url || !url.includes('script.google.com')) {
+                status.className = 'status err';
+                status.textContent = '⚠️ الرابط غير صحيح';
+                return;
+            }
+            sheetUrl = url;
+            localStorage.setItem('sheetUrl', sheetUrl);
+            status.className = 'status ok';
+            status.textContent = '✅ تم الحفظ! جاري التحميل...';
+            setTimeout(() => {
+                document.getElementById('setupPanel').style.display = 'none';
+                loadFromSheet();
+            }, 800);
+        }
+
+        // ===== GOOGLE SHEETS API =====
+        async function loadFromSheet() {
+            if (!sheetUrl) return;
+            try {
+                const res = await fetch(sheetUrl + '?t=' + Date.now());
+                const data = await res.json();
+                categories.forEach(c => {
+                    if (data[c.id] !== undefined) counts[c.id] = parseInt(data[c.id]) || 0;
+                });
+                saveToLocal();
+                renderCounters();
+                updateTotal();
+                updateSummary();
+                updateCharts();
+            } catch (e) {
+                console.error('Load error:', e);
+            }
+        }
+
+        async function saveToSheet() {
+            if (!sheetUrl) return;
+            try {
+                await fetch(sheetUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(counts)
+                });
+            } catch (e) {
+                console.error('Save error:', e);
+            }
+        }
+
+        // ===== DATE =====
+        function setTodayDate() {
+            const now = new Date();
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            document.getElementById('todayDate').textContent = '📅 ' + now.toLocaleDateString('ar-SA', options);
+        }
+
+        // ===== RENDER COUNTERS =====
+        function renderCounters() {
+            const grid = document.getElementById('countersGrid');
+            grid.innerHTML = categories.map(cat => `
+                <div class="counter-card ${cat.type}" onclick="increment('${cat.id}')">
+                    <div class="icon">${cat.icon}</div>
+                    <div class="title">${cat.title}</div>
+                    <div class="count" id="count-${cat.id}">${counts[cat.id]}</div>
+                </div>
+            `).join('');
+        }
+
+        // ===== INCREMENT ONLY =====
+        function increment(id) {
+            counts[id] = counts[id] + 1;
+            const el = document.getElementById('count-' + id);
+            if (el) el.textContent = counts[id];
+            updateTotal();
+            updateSummary();
+            updateCharts();
+            saveToLocal();
+            saveToSheet();
+        }
+
+        // ===== UPDATE TOTAL =====
+        function updateTotal() {
+            const total = Object.values(counts).reduce((a, b) => a + b, 0);
+            document.getElementById('totalCount').textContent = total;
+        }
+
+        // ===== UPDATE SUMMARY =====
+        function updateSummary() {
+            const summaryGrid = document.getElementById('summaryGrid');
+            summaryGrid.innerHTML = categories.map(cat => `
+                <div class="summary-item">
+                    <span>${cat.icon} ${cat.title}</span>
+                    <span class="val">${counts[cat.id]}</span>
+                </div>
+            `).join('');
+        }
+
+        // ===== CHARTS =====
+        function initCharts() {
+            Chart.defaults.font.family = "'Cairo', sans-serif";
+            Chart.defaults.color = '#2c3e50';
+
+            charts.bar = new Chart(document.getElementById('barChart'), {
+                type: 'bar',
+                data: {
+                    labels: categories.map(c => c.title),
+                    datasets: [{
+                        label: 'العدد',
+                        data: categories.map(c => counts[c.id]),
+                        backgroundColor: [
+                            '#3498db', '#e91e63', '#3498db', '#e91e63',
+                            '#3498db', '#e91e63', '#f39c12', '#f39c12'
+                        ],
+                        borderRadius: 6,
+                        borderSkipped: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+                }
+            });
+
+            charts.gender = new Chart(document.getElementById('genderChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['ذكور', 'إناث'],
+                    datasets: [{
+                        data: [0, 0],
+                        backgroundColor: ['#3498db', '#e91e63'],
+                        borderWidth: 0,
+                        hoverOffset: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { font: { size: 12 } } } }
+                }
+            });
+
+            charts.age = new Chart(document.getElementById('ageChart'), {
+                type: 'pie',
+                data: {
+                    labels: ['دون 15', '15-45', 'فوق 45', 'ذوي إعاقة'],
+                    datasets: [{
+                        data: [0, 0, 0, 0],
+                        backgroundColor: ['#2ecc71', '#3498db', '#9b59b6', '#f39c12'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { font: { size: 12 } } } }
+                }
+            });
+
+            charts.disability = new Chart(document.getElementById('disabilityChart'), {
+                type: 'bar',
+                data: {
+                    labels: ['ذكر ذوي إعاقة', 'أنثى ذوي إعاقة'],
+                    datasets: [{
+                        label: 'العدد',
+                        data: [counts['m_dis'], counts['f_dis']],
+                        backgroundColor: ['#f39c12', '#e67e22'],
+                        borderRadius: 6,
+                        borderSkipped: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+                }
+            });
+        }
+
+        function updateCharts() {
+            charts.bar.data.datasets[0].data = categories.map(c => counts[c.id]);
+            charts.bar.update();
+
+            const maleTotal = categories.filter(c => c.gender === 'male').reduce((s, c) => s + counts[c.id], 0);
+            const femaleTotal = categories.filter(c => c.gender === 'female').reduce((s, c) => s + counts[c.id], 0);
+            charts.gender.data.datasets[0].data = [maleTotal, femaleTotal];
+            charts.gender.update();
+
+            const under15 = counts['m_under15'] + counts['f_under15'];
+            const adult = counts['m_15_45'] + counts['f_15_45'];
+            const senior = counts['m_over45'] + counts['f_over45'];
+            const disability = counts['m_dis'] + counts['f_dis'];
+            charts.age.data.datasets[0].data = [under15, adult, senior, disability];
+            charts.age.update();
+
+            charts.disability.data.datasets[0].data = [counts['m_dis'], counts['f_dis']];
+            charts.disability.update();
+        }
+
+        // ===== RESET =====
+        function resetAll() {
+            if (confirm('هل أنت متأكد من إعادة ضبط جميع العدادات إلى الصفر؟')) {
+                categories.forEach(c => counts[c.id] = 0);
+                localStorage.removeItem(STORAGE_KEY);
+                renderCounters();
+                updateTotal();
+                updateSummary();
+                updateCharts();
+                saveToSheet();
+            }
+        }
+
+        // ===== EXPORT TEXT =====
+        function exportText() {
+            const total = Object.values(counts).reduce((a, b) => a + b, 0);
+            const dateStr = document.getElementById('todayDate').textContent.replace('📅 ', '');
+            let text = `╔═══════════════════════════════════════╗
+`;
+            text +=    `║         تقرير عداد الأشخاص            ║
+`;
+            text +=    `╠═══════════════════════════════════════╣
+`;
+            text +=    `║ التاريخ: ${dateStr.padEnd(28)} ║
+`;
+            text +=    `╠═══════════════════════════════════════╣
+`;
+            categories.forEach(c => {
+                text += `║ ${(c.icon + ' ' + c.title + ':').padEnd(25)} ${String(counts[c.id]).padStart(8)} ║
+`;
+            });
+            text +=    `╠═══════════════════════════════════════╣
+`;
+            text +=    `║ ${'الإجمالي الكلي:'.padEnd(25)} ${String(total).padStart(8)} ║
+`;
+            text +=    `╚═══════════════════════════════════════╝
+`;
+
+            navigator.clipboard.writeText(text).then(() => {
+                alert('✅ تم نسخ التقرير إلى الحافظة!');
+            }).catch(() => {
+                alert(text);
+            });
+        }
+
+        // ===== EXPORT IMAGE =====
+        function exportImage() {
+            const overlay = document.getElementById('exportOverlay');
+            overlay.classList.add('active');
+            setTimeout(() => {
+                html2canvas(document.querySelector('.container'), {
+                    scale: 2,
+                    useCORS: true,
+                    backgroundColor: '#f0f4f8'
+                }).then(canvas => {
+                    const link = document.createElement('a');
+                    const dateStr = new Date().toISOString().split('T')[0];
+                    link.download = `تقرير_عداد_الأشخاص_${dateStr}.png`;
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+                    overlay.classList.remove('active');
+                }).catch(err => {
+                    console.error(err);
+                    alert('⚠️ حدث خطأ أثناء تصدير الصورة');
+                    overlay.classList.remove('active');
+                });
+            }, 500);
+        }
+
+        // ===== INIT =====
+        setTodayDate();
+        initSetup();
+        renderCounters();
+        updateTotal();
+        updateSummary();
+
+        window.addEventListener('load', () => {
+            initCharts();
+            updateCharts();
+        });
+    </script>
+</body>
+</html>
