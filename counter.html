@@ -493,12 +493,12 @@
 
         // ===== DATA =====
         const categories = [
-            { id: 'm_under15', title: 'ذكر دون 15', icon: '👦', type: 'male', group: 'age', gender: 'male' },
-            { id: 'f_under15', title: 'أنثى دون 15', icon: '👧', type: 'female', group: 'age', gender: 'female' },
-            { id: 'm_15_45',   title: 'ذكر 15-45', icon: '👨', type: 'male', group: 'adult', gender: 'male' },
-            { id: 'f_15_45',   title: 'أنثى 15-45', icon: '👩', type: 'female', group: 'adult', gender: 'female' },
-            { id: 'm_over45',  title: 'ذكر فوق 45', icon: '👴', type: 'male', group: 'senior', gender: 'male' },
-            { id: 'f_over45',  title: 'أنثى فوق 45', icon: '👵', type: 'female', group: 'senior', gender: 'female' },
+            { id: 'm_under15', title: 'ذكر أقل من 15', icon: '👦', type: 'male', group: 'age', gender: 'male' },
+            { id: 'f_under15', title: 'أنثى أقل من 15', icon: '👧', type: 'female', group: 'age', gender: 'female' },
+            { id: 'm_15_60',   title: 'ذكر 15-60', icon: '👨', type: 'male', group: 'adult', gender: 'male' },
+            { id: 'f_15_60',   title: 'أنثى 15-60', icon: '👩', type: 'female', group: 'adult', gender: 'female' },
+            { id: 'm_over60',  title: 'ذكر أكثر من 60', icon: '👴', type: 'male', group: 'senior', gender: 'male' },
+            { id: 'f_over60',  title: 'أنثى أكثر من 60', icon: '👵', type: 'female', group: 'senior', gender: 'female' },
             { id: 'm_dis',     title: 'ذكر ذوي إعاقة', icon: '♂️♿', type: 'disability', group: 'disability', gender: 'male' },
             { id: 'f_dis',     title: 'أنثى ذوي إعاقة', icon: '♀️♿', type: 'disability', group: 'disability', gender: 'female' }
         ];
@@ -631,7 +631,7 @@
             charts.age = new Chart(document.getElementById('ageChart'), {
                 type: 'pie',
                 data: {
-                    labels: ['دون 15', '15-45', 'فوق 45', 'ذوي إعاقة'],
+                    labels: ['أقل من 15', '15-60', 'أكثر من 60', 'ذوي إعاقة'],
                     datasets: [{
                         data: [0, 0, 0, 0],
                         backgroundColor: ['#2ecc71', '#3498db', '#9b59b6', '#f39c12'],
@@ -676,8 +676,8 @@
             charts.gender.update();
 
             const under15 = counts['m_under15'] + counts['f_under15'];
-            const adult = counts['m_15_45'] + counts['f_15_45'];
-            const senior = counts['m_over45'] + counts['f_over45'];
+            const adult = counts['m_15_60'] + counts['f_15_60'];
+            const senior = counts['m_over60'] + counts['f_over60'];
             const disability = counts['m_dis'] + counts['f_dis'];
             charts.age.data.datasets[0].data = [under15, adult, senior, disability];
             charts.age.update();
