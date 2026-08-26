@@ -350,6 +350,7 @@
         }
     </style>
 <base target="_blank">
+<base target="_blank">
 </head>
 <body>
     <div class="container">
@@ -429,6 +430,67 @@
     </div>
 
     <script>
+        // ===== PERCENTAGE PLUGIN =====
+        const percentagePlugin = {
+            id: 'percentagePlugin',
+            afterDatasetsDraw(chart, args, options) {
+                const { ctx, data } = chart;
+                ctx.save();
+                ctx.font = 'bold 13px "Cairo", sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+
+                chart.data.datasets.forEach((dataset, i) => {
+                    const meta = chart.getDatasetMeta(i);
+                    const total = dataset.data.reduce((a, b) => a + b, 0);
+
+                    meta.data.forEach((element, index) => {
+                        const value = dataset.data[index];
+                        if (value === 0) return;
+                        const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
+                        const label = percentage + '%';
+
+                        if (chart.config.type === 'bar') {
+                            const barHeight = Math.abs(element.base - element.y);
+                            const x = element.x;
+                            const y = (element.y + element.base) / 2;
+
+                            if (barHeight < 22) {
+                                // Bar too short: place above
+                                ctx.fillStyle = '#2c3e50';
+                                ctx.fillText(label, x, element.y - 12);
+                            } else {
+                                // Place inside bar with white text + subtle shadow
+                                ctx.fillStyle = '#ffffff';
+                                ctx.shadowColor = 'rgba(0,0,0,0.4)';
+                                ctx.shadowBlur = 3;
+                                ctx.fillText(label, x, y);
+                                ctx.shadowBlur = 0;
+                            }
+                        } else if (chart.config.type === 'doughnut' || chart.config.type === 'pie') {
+                            const arc = element;
+                            const midAngle = (arc.startAngle + arc.endAngle) / 2;
+                            const radius = arc.outerRadius * 0.75;
+                            const x = arc.x + Math.cos(midAngle) * radius;
+                            const y = arc.y + Math.sin(midAngle) * radius;
+
+                            const textWidth = ctx.measureText(label).width;
+                            ctx.fillStyle = 'rgba(255,255,255,0.9)';
+                            ctx.beginPath();
+                            ctx.roundRect(x - textWidth/2 - 5, y - 10, textWidth + 10, 20, 5);
+                            ctx.fill();
+
+                            ctx.fillStyle = '#2c3e50';
+                            ctx.fillText(label, x, y);
+                        }
+                    });
+                });
+                ctx.restore();
+            }
+        };
+
+        Chart.register(percentagePlugin);
+
         // ===== DATA =====
         const categories = [
             { id: 'm_under15', title: 'ذكر دون 15', icon: '👦', type: 'male', group: 'age', gender: 'male' },
@@ -543,7 +605,7 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
+                    plugins: { legend: { display: false }, percentagePlugin: true },
                     scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
                 }
             });
@@ -562,7 +624,7 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: { legend: { position: 'bottom', labels: { font: { size: 12 } } } }
+                    plugins: { legend: { position: 'bottom', labels: { font: { size: 12 } } }, percentagePlugin: true }
                 }
             });
 
@@ -579,7 +641,7 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: { legend: { position: 'bottom', labels: { font: { size: 12 } } } }
+                    plugins: { legend: { position: 'bottom', labels: { font: { size: 12 } } }, percentagePlugin: true }
                 }
             });
 
@@ -598,7 +660,7 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
+                    plugins: { legend: { display: false }, percentagePlugin: true },
                     scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
                 }
             });
