@@ -7,6 +7,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         :root {
             --primary: #1a5276;
@@ -275,6 +276,15 @@
             background: #219a52;
         }
 
+        .btn-export-pdf {
+            background: #8e44ad;
+            color: white;
+        }
+
+        .btn-export-pdf:hover {
+            background: #732d91;
+        }
+
         /* ===== EXPORT OVERLAY ===== */
         .export-overlay {
             position: fixed;
@@ -416,6 +426,9 @@
             </button>
             <button class="btn-action btn-export-img" onclick="exportImage()">
                 🖼️ تصدير صورة
+            </button>
+            <button class="btn-action btn-export-pdf" onclick="exportPDF()">
+                📄 تصدير PDF
             </button>
         </div>
     </div>
@@ -734,12 +747,26 @@
         function exportImage() {
             const overlay = document.getElementById('exportOverlay');
             overlay.classList.add('active');
+
+            // Clone container and remove actions buttons
+            const element = document.querySelector('.container').cloneNode(true);
+            const actions = element.querySelector('.actions');
+            if (actions) actions.remove();
+
+            // Temporarily append to body (hidden) for rendering
+            element.style.position = 'fixed';
+            element.style.top = '-9999px';
+            element.style.left = '0';
+            element.style.width = '1100px';
+            document.body.appendChild(element);
+
             setTimeout(() => {
-                html2canvas(document.querySelector('.container'), {
+                html2canvas(element, {
                     scale: 2,
                     useCORS: true,
                     backgroundColor: '#f0f4f8'
                 }).then(canvas => {
+                    document.body.removeChild(element);
                     const link = document.createElement('a');
                     const dateStr = new Date().toISOString().split('T')[0];
                     link.download = `تقرير_عداد_الأشخاص_${dateStr}.png`;
@@ -748,10 +775,47 @@
                     overlay.classList.remove('active');
                 }).catch(err => {
                     console.error(err);
+                    if (document.body.contains(element)) document.body.removeChild(element);
                     alert('⚠️ حدث خطأ أثناء تصدير الصورة');
                     overlay.classList.remove('active');
                 });
             }, 500);
+        }
+
+        // ===== EXPORT PDF =====
+        function exportPDF() {
+            const overlay = document.getElementById('exportOverlay');
+            overlay.classList.add('active');
+
+            // Clone container and remove actions buttons
+            const element = document.querySelector('.container').cloneNode(true);
+            const actions = element.querySelector('.actions');
+            if (actions) actions.remove();
+
+            // Temporarily append to body (hidden) for rendering
+            element.style.position = 'fixed';
+            element.style.top = '-9999px';
+            element.style.left = '0';
+            element.style.width = '1100px';
+            document.body.appendChild(element);
+
+            const opt = {
+                margin: [10, 10, 10, 10],
+                filename: `تقرير_عداد_الأشخاص_${new Date().toISOString().split('T')[0]}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true, backgroundColor: '#f0f4f8' },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            html2pdf().set(opt).from(element).save().then(() => {
+                document.body.removeChild(element);
+                overlay.classList.remove('active');
+            }).catch(err => {
+                console.error(err);
+                document.body.removeChild(element);
+                alert('⚠️ حدث خطأ أثناء تصدير PDF');
+                overlay.classList.remove('active');
+            });
         }
 
         // ===== INIT =====
