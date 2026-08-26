@@ -8,6 +8,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         :root {
             --primary: #1a5276;
@@ -748,25 +749,22 @@
             const overlay = document.getElementById('exportOverlay');
             overlay.classList.add('active');
 
-            // Clone container and remove actions buttons
-            const element = document.querySelector('.container').cloneNode(true);
-            const actions = element.querySelector('.actions');
-            if (actions) actions.remove();
+            const container = document.querySelector('.container');
+            const actions = container.querySelector('.actions');
 
-            // Temporarily append to body (hidden) for rendering
-            element.style.position = 'fixed';
-            element.style.top = '-9999px';
-            element.style.left = '0';
-            element.style.width = '1100px';
-            document.body.appendChild(element);
+            // Hide buttons temporarily
+            if (actions) actions.style.display = 'none';
 
+            // Small delay to ensure charts are fully rendered
             setTimeout(() => {
-                html2canvas(element, {
+                html2canvas(container, {
                     scale: 2,
                     useCORS: true,
                     backgroundColor: '#f0f4f8'
                 }).then(canvas => {
-                    document.body.removeChild(element);
+                    // Restore buttons
+                    if (actions) actions.style.display = '';
+
                     const link = document.createElement('a');
                     const dateStr = new Date().toISOString().split('T')[0];
                     link.download = `تقرير_عداد_الأشخاص_${dateStr}.png`;
@@ -775,7 +773,7 @@
                     overlay.classList.remove('active');
                 }).catch(err => {
                     console.error(err);
-                    if (document.body.contains(element)) document.body.removeChild(element);
+                    if (actions) actions.style.display = '';
                     alert('⚠️ حدث خطأ أثناء تصدير الصورة');
                     overlay.classList.remove('active');
                 });
@@ -787,35 +785,69 @@
             const overlay = document.getElementById('exportOverlay');
             overlay.classList.add('active');
 
-            // Clone container and remove actions buttons
-            const element = document.querySelector('.container').cloneNode(true);
-            const actions = element.querySelector('.actions');
-            if (actions) actions.remove();
+            const container = document.querySelector('.container');
+            const actions = container.querySelector('.actions');
 
-            // Temporarily append to body (hidden) for rendering
-            element.style.position = 'fixed';
-            element.style.top = '-9999px';
-            element.style.left = '0';
-            element.style.width = '1100px';
-            document.body.appendChild(element);
+            // Save original states
+            const originalMaxWidth = container.style.maxWidth;
+            const originalWidth = container.style.width;
 
-            const opt = {
-                margin: [10, 10, 10, 10],
-                filename: `تقرير_عداد_الأشخاص_${new Date().toISOString().split('T')[0]}.pdf`,
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2, useCORS: true, backgroundColor: '#f0f4f8' },
-                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-            };
+            // Hide buttons
+            if (actions) actions.style.display = 'none';
 
-            html2pdf().set(opt).from(element).save().then(() => {
-                document.body.removeChild(element);
-                overlay.classList.remove('active');
-            }).catch(err => {
-                console.error(err);
-                document.body.removeChild(element);
-                alert('⚠️ حدث خطأ أثناء تصدير PDF');
-                overlay.classList.remove('active');
-            });
+            // Force charts to resize
+            Object.values(charts).forEach(chart => chart.resize());
+
+            setTimeout(() => {
+                html2canvas(container, {
+                    scale: 2,
+                    useCORS: true,
+                    backgroundColor: '#f0f4f8'
+                }).then(canvas => {
+                    // Restore buttons
+                    if (actions) actions.style.display = '';
+
+                    const imgData = canvas.toDataURL('image/jpeg', 0.95);
+                    const imgWidth = canvas.width;
+                    const imgHeight = canvas.height;
+
+                    // A4 landscape in points (1 inch = 72 pt, A4 = 297x210 mm)
+                    const pageWidth = 841.89;  // 297mm in points
+                    const pageHeight = 595.28; // 210mm in points
+                    const margin = 20;
+                    const availableWidth = pageWidth - (margin * 2);
+                    const availableHeight = pageHeight - (margin * 2);
+
+                    // Calculate scale to fit image on single page
+                    const scaleW = availableWidth / imgWidth;
+                    const scaleH = availableHeight / imgHeight;
+                    const scale = Math.min(scaleW, scaleH);
+
+                    const finalWidth = imgWidth * scale;
+                    const finalHeight = imgHeight * scale;
+                    const x = (pageWidth - finalWidth) / 2;
+                    const y = (pageHeight - finalHeight) / 2;
+
+                    const { jsPDF } = window.jspdf;
+                    const pdf = new jsPDF({
+                        orientation: 'landscape',
+                        unit: 'pt',
+                        format: 'a4'
+                    });
+
+                    pdf.addImage(imgData, 'JPEG', x, y, finalWidth, finalHeight);
+
+                    const dateStr = new Date().toISOString().split('T')[0];
+                    pdf.save(`تقرير_عداد_الأشخاص_${dateStr}.pdf`);
+
+                    overlay.classList.remove('active');
+                }).catch(err => {
+                    console.error(err);
+                    if (actions) actions.style.display = '';
+                    alert('⚠️ حدث خطأ أثناء تصدير PDF');
+                    overlay.classList.remove('active');
+                });
+            }, 800);
         }
 
         // ===== INIT =====
